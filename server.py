@@ -4,7 +4,7 @@ from aiohttp import web
 from api import init_app
 
 
-parser = argparse.ArgumentParser(description="Codescrap API: aiohttp server")
+parser = argparse.ArgumentParser(description="AIOHTTP API: aiohttp server")
 parser.add_argument('--path')
 parser.add_argument('--port')
 
