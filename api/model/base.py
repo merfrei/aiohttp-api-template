@@ -81,14 +81,14 @@ class DBModel:
         where_cl = []
         for w_c, w_e, w_v in where:
             if callable(w_v):
-                # Usually used to include subqueries
+                # Used to include subqueries
                 # This callback will return a tuple: <qry_str>,<qry_args>
                 # All the arguments will be {} so we can use format to insert
                 # the correct position number
                 qry_str, qry_args = w_v()
                 w_v_args, arg_no = self._w_v_args(w_v, arg_no)
                 qry_str = qry_str.format(*w_v_args)
-                where_cl.append('{} {} {}'.format(w_c, w_e, qry_str))
+                where_cl.append('{} {} ({})'.format(w_c, w_e, qry_str))
             elif w_e == 'in':
                 w_v_args, arg_no = self._w_v_args(w_v, arg_no)
                 where_cl.append('{} in ({})'.format(w_c, ','.join(w_v_args)))
