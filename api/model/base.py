@@ -21,12 +21,16 @@ class DBModel:
             first_col_no = last_col_no
         return ', '.join(insert_values_list)
 
-    async def insert(self, columns, *values):
+    async def insert(self, columns, *values, return_id=True, on_conflict=None):
         """SQL INSERT Query
         columns: str (ie: name, age)
         *values: tuples (ie: ('Nano', 33))"""
-        query = 'INSERT INTO {} ({}) VALUES {} RETURNING id'.format(
+        query = 'INSERT INTO {} ({}) VALUES {}'.format(
             self.tablename, columns, self._insert_values_query_str(columns, *values))
+        if on_conflict is not None:
+            query += ' ON CONFICT {}'.format(on_conflict)
+        if return_id:
+            query += ' RETURNING id'
         values_args = [v for v in chain(*values)]
         async with self.pool.acquire() as connection:
              async with connection.transaction():
