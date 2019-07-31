@@ -56,21 +56,41 @@ class DBModel:
     def _where_args(self, *where):
         query_args = []
         for _1, _2, v in where:
+            if callable(v):
+                # Look at the comment in `_where_str` method
+                qry_str_, qry_args = v()
+                v = qry_args  # This way is more explicit
             if isinstance(v, list):
                 query_args += v
             else:
                 query_args.append(v)
         return query_args
 
+    def _w_v_args(self, args, arg_no):
+        """It'll return the arguments to use in the where query
+        ie: [$1, $2, ...]
+        Also the current argument position number"""
+        w_v_args = []
+        for _ in args:
+            arg_no += 1
+            w_v_args.append('${}'.format(arg_no))
+        return w_v_args, arg_no
+
     def _where_str(self, *where, first_arg_no=1):
         arg_no = first_arg_no - 1
         where_cl = []
         for w_c, w_e, w_v in where:
-            if w_e == 'in':
-                w_v_args = []
-                for w_v_ in w_v:
-                    arg_no += 1
-                    w_v_args.append('${}'.format(arg_no))
+            if callable(w_v):
+                # Usually used to include subqueries
+                # This callback will return a tuple: <qry_str>,<qry_args>
+                # All the arguments will be {} so we can use format to insert
+                # the correct position number
+                qry_str, qry_args = w_v()
+                w_v_args, arg_no = self._w_v_args(w_v, arg_no)
+                qry_str = qry_str.format(*w_v_args)
+                where_cl.append('{} {} {}'.format(w_c, w_e, qry_str))
+            elif w_e == 'in':
+                w_v_args, arg_no = self._w_v_args(w_v, arg_no)
                 where_cl.append('{} in ({})'.format(w_c, ','.join(w_v_args)))
             else:
                 arg_no += 1
