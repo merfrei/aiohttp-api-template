@@ -90,11 +90,8 @@ def get_base_put(DBModel):
                 values = []
                 for c, v in params.items():
                     columns.append(c)
-                    if c == 'date':
-                        values.append(datetime.datetime.strptime(v, '%Y-%m-%d').date())
-                    else:
-                        values.append(v)
-                    where_query = [('id', '=', int(model_id)), ]
+                    values.append(v)
+                where_query = [('id', '=', int(model_id)), ]
                 result = await model_db.update(','.join(columns),
                                                tuple(values),
                                                *where_query)
