@@ -1,9 +1,15 @@
+"""
+API Base Handler creators
+"""
+
 import json
 import datetime
 from aiohttp import web
 
 
 def parse_datetime(content):
+    '''Parse a datetime parameter
+    I recommend to set the str format in a config file'''
     if isinstance(content, datetime.datetime):
         return content.strftime('%Y-%m-%d %H:%M:%S')
     if isinstance(content, datetime.date):
@@ -12,20 +18,23 @@ def parse_datetime(content):
 
 
 def custom_dumps(content):
+    '''Custom dumps function for parsing datetime parameters'''
     return json.dumps(content, default=parse_datetime)
 
 
 def get_404_response():
+    '''Default 404 response'''
     return web.json_response({'message': 'Not found',
                               'data': {},
                               'status': 'unknown'}, status=404)
 
 
-def get_base_get(DBModel, *where, extra=None):
+def get_base_get(db_model_cls, *where, extra=None):
+    '''Get a base GET handler'''
     async def get_handler(request):
         model_id = request.match_info.get('id')
-        model_db = DBModel(request.app)
-        total = 1;
+        model_db = db_model_cls(request.app)
+        total = 1
         paging_query = []
         if 'offset' in request.query:
             offset = int(request.query['offset'])
@@ -60,16 +69,17 @@ def get_base_get(DBModel, *where, extra=None):
     return get_handler
 
 
-def get_base_post(DBModel):
+def get_base_post(db_model_cls):
+    '''Get a base POST handler'''
     async def post_handler(request):
-        model_db = DBModel(request.app)
+        model_db = db_model_cls(request.app)
         params = await request.json()
         if params:
             columns = []
             values = []
-            for c, v in params.items():
-                columns.append(c)
-                values.append(v)
+            for col, val in params.items():
+                columns.append(col)
+                values.append(val)
             result = await model_db.insert(','.join(columns), *[tuple(values)])
             return web.json_response({'message': 'All OK',
                                       'data': {'id': result},
@@ -79,18 +89,19 @@ def get_base_post(DBModel):
     return post_handler
 
 
-def get_base_put(DBModel):
+def get_base_put(db_model_cls):
+    '''Get a base PUT handler'''
     async def put_handler(request):
         model_id = request.match_info.get('id')
         if model_id is not None:
-            model_db = DBModel(request.app)
+            model_db = db_model_cls(request.app)
             params = await request.json()
             if params:
                 columns = []
                 values = []
-                for c, v in params.items():
-                    columns.append(c)
-                    values.append(v)
+                for col, val in params.items():
+                    columns.append(col)
+                    values.append(val)
                 where_query = [('id', '=', int(model_id)), ]
                 result = await model_db.update(','.join(columns),
                                                tuple(values),
@@ -103,11 +114,12 @@ def get_base_put(DBModel):
     return put_handler
 
 
-def get_base_delete(DBModel):
+def get_base_delete(db_model_cls):
+    '''Get a base DELETE handler'''
     async def delete_handler(request):
         model_id = request.match_info.get('id')
         if model_id is not None:
-            model_db = DBModel(request.app)
+            model_db = db_model_cls(request.app)
             where_query = [('id', '=', int(model_id)), ]
             result = await model_db.delete(*where_query)
             return web.json_response({'message': 'All OK',

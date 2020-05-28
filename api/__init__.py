@@ -1,3 +1,9 @@
+"""
+AIOHTTP API
+
+Init App
+"""
+
 import asyncpg
 from aiohttp import web
 from api.config import get_config
@@ -6,6 +12,7 @@ from api.auth import apikey_middleware
 
 
 async def init_app():
+    '''Set the config and database pool and init the routes'''
     config = get_config()
 
     if config['TESTING']:

@@ -1,7 +1,12 @@
+"""
+AIOHTTP API - Base Model
+"""
+
 from itertools import chain
 
 
 class DBModel:
+    '''DBModel to represent a table in database'''
 
     tablename = None  # It must not be None
 
@@ -9,11 +14,12 @@ class DBModel:
         self._app = app
         self.pool = app['pool']
 
-    def _insert_values_query_str(self, columns, *values):
+    @staticmethod
+    def _insert_values_query_str(columns, *values):
         columns_no = len(columns.split(','))
         first_col_no = 1
         insert_values_list = []
-        for val_tpl in values:
+        for _ in values:
             last_col_no = columns_no + first_col_no
             values_query = ', '.join(['${}'.format(c_no) for c_no in
                                       range(first_col_no, last_col_no)])
@@ -31,11 +37,11 @@ class DBModel:
             query += ' ON CONFICT {}'.format(on_conflict)
         if return_id:
             query += ' RETURNING id'
-        values_args = [v for v in chain(*values)]
+        values_args = list(chain(*values))
         async with self.pool.acquire() as connection:
-             async with connection.transaction():
-                 result = await connection.fetchval(query, *values_args)
-                 return result
+            async with connection.transaction():
+                result = await connection.fetchval(query, *values_args)
+                return result
 
     async def update(self, columns, values, *where):
         """SQL UPDATE Query
@@ -57,20 +63,22 @@ class DBModel:
                 result = await connection.fetchrow(query, *query_args)
                 return result
 
-    def _where_args(self, *where):
+    @staticmethod
+    def _where_args(*where):
         query_args = []
-        for _1, _2, v in where:
-            if callable(v):
+        for _1, _2, w_v in where:
+            if callable(w_v):
                 # Look at the comment in `_where_str` method
-                qry_str_, qry_args = v()
-                v = qry_args  # This way is more explicit
-            if isinstance(v, list):
-                query_args += v
+                _, qry_args = w_v()
+                w_v = qry_args  # This way is more explicit
+            if isinstance(w_v, list):
+                query_args += w_v
             else:
-                query_args.append(v)
+                query_args.append(w_v)
         return query_args
 
-    def _w_v_args(self, args, arg_no):
+    @staticmethod
+    def _w_v_args(args, arg_no):
         """It'll return the arguments to use in the where query
         ie: [$1, $2, ...]
         Also the current argument position number"""
@@ -89,7 +97,7 @@ class DBModel:
                 # This callback will return a tuple: <qry_str>,<qry_args>
                 # All the arguments will be {} so we can use format to insert
                 # the correct position number
-                qry_str, qry_args = w_v()
+                qry_str, _ = w_v()
                 w_v_args, arg_no = self._w_v_args(w_v, arg_no)
                 qry_str = qry_str.format(*w_v_args)
                 where_cl.append('{} {} ({})'.format(w_c, w_e, qry_str))
@@ -98,7 +106,7 @@ class DBModel:
                 where_cl.append('{} in ({})'.format(w_c, ','.join(w_v_args)))
             else:
                 arg_no += 1
-                where_cl.append('{} {} ${}'.format(w_c, w_e, arg_no) )
+                where_cl.append('{} {} ${}'.format(w_c, w_e, arg_no))
         return ' AND '.join(where_cl)
 
     def _select_query(self, *where, columns='*', extra=None):
@@ -134,8 +142,9 @@ class DBModel:
                 result = await connection.fetch(query, *query_args)
                 return result
 
-    async def count(self, *where):
-        query, query_args = self._select_count_query(*where, columns='id')
+    async def count(self, *where, columns='id'):
+        '''Return the count for a given query'''
+        query, query_args = self._select_count_query(*where, columns=columns)
         async with self.pool.acquire() as connection:
             async with connection.transaction():
                 result = await connection.fetchrow(query, *query_args)

@@ -1,3 +1,10 @@
+"""
+Very basic config example
+"""
+
+import os
+
+
 DEFAULT_ENVIRON = 'dev'
 
 
@@ -28,6 +35,7 @@ CONFIG = {
 
 
 def get_config():
+    '''Get config object'''
     environ = DEFAULT_ENVIRON
     if 'API_ENVIRON' in os.environ:
         environ = os.environ['API_ENVIRON']
