@@ -41,10 +41,12 @@ def get_422_response(details):
 def validate_params(params, schema):
     '''Given a pydantic model it will validate the body params'''
     try:
-        schema(**params)
+        schema_inst = schema(**params)
     except ValidationError as errors:
-        return errors
-    return None
+        return errors, params
+    ret_params = {sch_k: sch_v for sch_k, sch_v in schema_inst.dict().items()
+                  if sch_v is not None}
+    return None, ret_params
 
 
 def convert_dict_list_to_str(content):
@@ -102,7 +104,7 @@ def get_base_post(db_model_cls, schema=None):
         if not params:
             return get_404_response()
         if schema is not None:
-            errors = validate_params(params, schema)
+            errors, params = validate_params(params, schema)
             if errors is not None:
                 return get_422_response(errors.json())
         columns = []
@@ -128,7 +130,7 @@ def get_base_put(db_model_cls, schema=None):
             if not params:
                 return get_404_response()
             if schema is not None:
-                errors = validate_params(params, schema)
+                errors, params = validate_params(params, schema)
                 if errors is not None:
                     return get_422_response(errors.json())
             columns = []
