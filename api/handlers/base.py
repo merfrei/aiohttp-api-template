@@ -4,6 +4,9 @@ API Base Handler creators
 
 import json
 import datetime
+
+from pydantic import ValidationError
+
 from aiohttp import web
 
 
@@ -27,6 +30,21 @@ def get_404_response():
     return web.json_response({'message': 'Not found',
                               'data': {},
                               'status': 'unknown'}, status=404)
+
+def get_422_response(details):
+    '''Default validation error response'''
+    return web.json_response({'message': 'Validation Errors',
+                              'data': {'details': details},
+                              'status': 'error'}, status=422)
+
+
+def validate_params(params, schema):
+    '''Given a pydantic model it will validate the body params'''
+    try:
+        schema(params)
+    except ValidationError as errors:
+        return errors
+    return None
 
 
 def get_base_get(db_model_cls, *where, extra=None):
@@ -69,48 +87,56 @@ def get_base_get(db_model_cls, *where, extra=None):
     return get_handler
 
 
-def get_base_post(db_model_cls):
+def get_base_post(db_model_cls, schema=None):
     '''Get a base POST handler'''
     async def post_handler(request):
         model_db = db_model_cls(request.app)
         params = await request.json()
-        if params:
-            columns = []
-            values = []
-            for col, val in params.items():
-                columns.append(col)
-                values.append(val)
-            result = await model_db.insert(','.join(columns), *[tuple(values)])
-            return web.json_response({'message': 'All OK',
-                                      'data': {'id': result},
-                                      'status': 'success'}, status=201,
-                                     dumps=custom_dumps)
-        return get_404_response()
+        if not params:
+            return get_404_response()
+        if schema is not None:
+            errors = validate_params(params, schema)
+            if errors is not None:
+                return get_422_response(errors.json())
+        columns = []
+        values = []
+        for col, val in params.items():
+            columns.append(col)
+            values.append(val)
+        result = await model_db.insert(','.join(columns), *[tuple(values)])
+        return web.json_response({'message': 'All OK',
+                                  'data': {'id': result},
+                                  'status': 'success'}, status=201,
+                                 dumps=custom_dumps)
     return post_handler
 
 
-def get_base_put(db_model_cls):
+def get_base_put(db_model_cls, schema=None):
     '''Get a base PUT handler'''
     async def put_handler(request):
         model_id = request.match_info.get('id')
         if model_id is not None:
             model_db = db_model_cls(request.app)
             params = await request.json()
-            if params:
-                columns = []
-                values = []
-                for col, val in params.items():
-                    columns.append(col)
-                    values.append(val)
-                where_query = [('id', '=', int(model_id)), ]
-                result = await model_db.update(','.join(columns),
-                                               tuple(values),
-                                               *where_query)
-                return web.json_response({'message': 'All OK',
-                                          'data': dict(result),
-                                          'status': 'success'}, status=200,
-                                         dumps=custom_dumps)
-        return get_404_response()
+            if not params:
+                return get_404_response()
+            if schema is not None:
+                errors = validate_params(params, schema)
+                if errors is not None:
+                    return get_422_response(errors.json())
+            columns = []
+            values = []
+            for col, val in params.items():
+                columns.append(col)
+                values.append(val)
+            where_query = [('id', '=', int(model_id)), ]
+            result = await model_db.update(','.join(columns),
+                                           tuple(values),
+                                           *where_query)
+            return web.json_response({'message': 'All OK',
+                                      'data': dict(result),
+                                      'status': 'success'}, status=200,
+                                     dumps=custom_dumps)
     return put_handler
 
 
