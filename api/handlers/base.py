@@ -41,7 +41,7 @@ def get_422_response(details):
 def validate_params(params, schema):
     '''Given a pydantic model it will validate the body params'''
     try:
-        schema(params)
+        schema(**params)
     except ValidationError as errors:
         return errors
     return None
