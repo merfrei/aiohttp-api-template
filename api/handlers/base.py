@@ -47,6 +47,13 @@ def validate_params(params, schema):
     return None
 
 
+def convert_dict_list_to_str(content):
+    '''If the content is a dict or list it will be converted to a JSON string'''
+    if isinstance(content, (list, dict)):
+        return json.dumps(content)
+    return content
+
+
 def get_base_get(db_model_cls, *where, extra=None):
     '''Get a base GET handler'''
     async def get_handler(request):
@@ -102,7 +109,7 @@ def get_base_post(db_model_cls, schema=None):
         values = []
         for col, val in params.items():
             columns.append(col)
-            values.append(val)
+            values.append(convert_dict_list_to_str(val))
         result = await model_db.insert(','.join(columns), *[tuple(values)])
         return web.json_response({'message': 'All OK',
                                   'data': {'id': result},
@@ -128,7 +135,7 @@ def get_base_put(db_model_cls, schema=None):
             values = []
             for col, val in params.items():
                 columns.append(col)
-                values.append(val)
+                values.append(convert_dict_list_to_str(val))
             where_query = [('id', '=', int(model_id)), ]
             result = await model_db.update(','.join(columns),
                                            tuple(values),
