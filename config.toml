@@ -3,9 +3,9 @@ api_key = "yoursupersercretapikey"
 # You can also add a specific API key for each method
 # get_api_key, post_api_key, put_api_key, delete_api
 
-[databases]
+[database]
 
-    [databases.postgres]
+    [database.postgres]
     uri = "postgresql://aiohttp:1234@localhost:5432/myapi"
     pool_min = 10
     pool_max = 50
