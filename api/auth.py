@@ -1,14 +1,12 @@
 """
-AIOHTTP Auth
-
-API Key authentication method
+API authentication
 """
 
 from aiohttp import web
 
 
 async def get_403_response():
-    '''A Unauthorized 403 reponse'''
+    '''GET 403 Unauthorized response'''
     return web.json_response({'message': 'forbidden',
                               'data': {},
                               'status': 'forbidden'}, status=403)
@@ -16,8 +14,10 @@ async def get_403_response():
 
 @web.middleware
 async def apikey_middleware(request, handler):
-    '''AIOHTTP Middleware to use an API Key as authentication method'''
+    '''API api-key authentication aiohttp middleware'''
     api_key = request.query.get('api_key', None)
-    if api_key is None or api_key != request.app['api_key']:
+    api_key_method = '{}_api_key'.format(request.method.lower())
+    app_api_key = request.app.get(api_key_method, request.app['api_key'])
+    if api_key is None or api_key != app_api_key:
         return await get_403_response()
     return await handler(request)

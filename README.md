@@ -5,6 +5,18 @@ This is a template that you can use to build your API based on Python AIOHTTP an
 
 ## Requirements
 
-`pip install aiohttp[speedups]`
+- aiohttp[speedups]
 
-`pip install asyncpg`
+- asyncpg
+
+- pydantic
+
+- toml
+
+## Usage
+
+Take a looks at the examples in
+
+    - *api/models*
+    - *api/handlers*
+    - *api/routes*
